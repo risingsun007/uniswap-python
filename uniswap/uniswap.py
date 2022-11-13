@@ -1127,7 +1127,7 @@ class Uniswap:
         tick_lower: int,
         tick_upper: int,
         deadline: int = 2**64,
-    ) -> TxReceipt:
+    ) -> HexBytes:
         """
         add liquidity to pool and mint position nft
         """
@@ -1204,29 +1204,16 @@ class Uniswap:
         # If collecting fees in ETH, fees must be precomputed to protect against reentrancy
         # source: https://docs.uniswap.org/sdk/guides/liquidity/removing
 
-        if position[2] == WETH9_ADDRESS or position[3] == WETH9_ADDRESS:
-            amount0Min, amount1Min = self.nonFungiblePositionManager.functions.collect(
-                (tokenId, _addr_to_str(self.address), MAX_UINT_128, MAX_UINT_128)
-            ).call()
-
-        tx_remove_liquidity = (
+        tx_remove_liquidity = self._build_and_send_tx(
             self.nonFungiblePositionManager.functions.decreaseLiquidity(
-                (tokenId, position[7], amount0Min, amount1Min, deadline)
-            ).transact({"from": _addr_to_str(self.address)})
+                tokenId, position[7], amount0Min, amount1Min, deadline
+            )
         )
-        self.w3.eth.wait_for_transaction_receipt(tx_remove_liquidity)
-
-        tx_collect_fees = self.nonFungiblePositionManager.functions.collect(
+        tx_collect_fees =  self._build_and_send_tx(self.nonFungiblePositionManager.functions.collect(
             (tokenId, _addr_to_str(self.address), MAX_UINT_128, MAX_UINT_128)
-        ).transact({"from": _addr_to_str(self.address)})
-        self.w3.eth.wait_for_transaction_receipt(tx_collect_fees)
+        ))
 
-        tx_burn = self.nonFungiblePositionManager.functions.burn(tokenId).transact(
-            {"from": _addr_to_str(self.address)}
-        )
-        receipt = self.w3.eth.wait_for_transaction_receipt(tx_burn)
-
-        return receipt
+        return tx_collect_fees
 
     # Below two functions derived from: https://stackoverflow.com/questions/71814845/how-to-calculate-uniswap-v3-pools-total-value-locked-tvl-on-chain
     def get_token0_in_pool(
@@ -1423,7 +1410,6 @@ class Uniswap:
         logger.warning(f"Approving {_addr_to_str(token)}...")
         tx = self._build_and_send_tx(function)
         result = self.w3.eth.wait_for_transaction_receipt(tx, timeout=6000)
-        print("approve result: ", result)
 
         # Add extra sleep to let tx propogate correctly
         time.sleep(1)
