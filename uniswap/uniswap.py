@@ -116,10 +116,12 @@ class Uniswap:
             # Initialize web3. Extra provider for testing.
             if not provider:
                 provider = os.environ["PROVIDER"]
-            self.w3 = Web3(Web3.HTTPProvider(provider, request_kwargs={"timeout": 60}))
+            self.w3 = Web3(Web3.HTTPProvider(
+                provider, request_kwargs={"timeout": 60}))
 
         if enable_caching:
-            self.w3.middleware_onion.inject(_get_eth_simple_cache_middleware(), layer=0)
+            self.w3.middleware_onion.inject(
+                _get_eth_simple_cache_middleware(), layer=0)
 
         self.netid = int(self.w3.net.version)
         if self.netid in _netid_to_name:
@@ -128,7 +130,8 @@ class Uniswap:
             raise Exception(f"Unknown netid: {self.netid}")  # pragma: no cover
         logger.info(f"Using {self.w3} ('{self.netname}', netid: {self.netid})")
 
-        self.last_nonce: Nonce = self.w3.eth.get_transaction_count(self.address)
+        self.last_nonce: Nonce = self.w3.eth.get_transaction_count(
+            self.address)
 
         # This code automatically approves you for trading on the exchange.
         # max_approval is to allow the contract to exchange on your behalf.
@@ -152,7 +155,8 @@ class Uniswap:
         elif self.version == 2:
             if router_contract_addr is None:
                 router_contract_addr = _router_contract_addresses_v2[self.netname]
-            self.router_address: AddressLike = _str_to_addr(router_contract_addr)
+            self.router_address: AddressLike = _str_to_addr(
+                router_contract_addr)
 
             if factory_contract_addr is None:
                 factory_contract_addr = _factory_contract_addresses_v2[self.netname]
@@ -175,7 +179,8 @@ class Uniswap:
             self.factory_contract = _load_contract(
                 self.w3, abi_name="uniswap-v3/factory", address=factory_contract_address
             )
-            quoter_addr = _str_to_addr("0xb27308f9F90D607463bb33eA1BeBb41C27CE5AB6")
+            quoter_addr = _str_to_addr(
+                "0xb27308f9F90D607463bb33eA1BeBb41C27CE5AB6")
             self.router_address = _str_to_addr(
                 "0xE592427A0AEce92De3Edee1F18E0157C05861564"
             )
@@ -326,7 +331,8 @@ class Uniswap:
                 logger.warning(f"No route specified, assuming route: {route}")
 
         if self.version == 2:
-            price: int = self.router.functions.getAmountsOut(qty, route).call()[-1]
+            price: int = self.router.functions.getAmountsOut(
+                qty, route).call()[-1]
         elif self.version == 3:
             if route:
                 # NOTE: to support custom routes we need to support the Path data encoding: https://github.com/Uniswap/uniswap-v3-periphery/blob/main/contracts/libraries/Path.sol
@@ -339,7 +345,8 @@ class Uniswap:
                 token0, token1, fee, qty, sqrtPriceLimitX96
             ).call()
         else:
-            raise ValueError("function not supported for this version of Uniswap")
+            raise ValueError(
+                "function not supported for this version of Uniswap")
         return price
 
     def _get_eth_token_output_price(
@@ -416,7 +423,8 @@ class Uniswap:
                 logger.warning(f"No route specified, assuming route: {route}")
 
         if self.version == 2:
-            price: int = self.router.functions.getAmountsIn(qty, route).call()[0]
+            price: int = self.router.functions.getAmountsIn(qty, route).call()[
+                0]
         elif self.version == 3:
             if not fee:
                 logger.warning("No fee set, assuming 0.3%")
@@ -466,7 +474,8 @@ class Uniswap:
 
         if input_token == ETH_ADDRESS:
             return self._eth_to_token_swap_input(
-                output_token, Wei(qty), recipient, fee, slippage, fee_on_transfer
+                output_token, Wei(
+                    qty), recipient, fee, slippage, fee_on_transfer
             )
         elif output_token == ETH_ADDRESS:
             return self._token_to_eth_swap_input(
@@ -554,7 +563,8 @@ class Uniswap:
             if recipient is None:
                 recipient = self.address
             amount_out_min = int(
-                (1 - slippage) * self._get_eth_token_input_price(output_token, qty, fee)
+                (1 - slippage) *
+                self._get_eth_token_input_price(output_token, qty, fee)
             )
             if fee_on_transfer:
                 func = (
@@ -977,7 +987,8 @@ class Uniswap:
 
         # Balance check
         input_balance = self.get_token_balance(input_token)
-        cost = self._get_token_token_output_price(input_token, output_token, qty, fee)
+        cost = self._get_token_token_output_price(
+            input_token, output_token, qty, fee)
         amount_in_max = int((1 + slippage) * cost)
         if (
             amount_in_max > input_balance
@@ -1093,7 +1104,8 @@ class Uniswap:
         # https://hackmd.io/hthz9hXKQmSyXfMbPsut1g#Add-Liquidity-Calculations
         max_token = int(max_eth * self.get_exchange_rate(token)) + 10
         func_params = [min_liquidity, max_token, self._deadline()]
-        function = self._exchange_contract(token).functions.addLiquidity(*func_params)
+        function = self._exchange_contract(
+            token).functions.addLiquidity(*func_params)
         return self._build_and_send_tx(function, tx_params)
 
     @supports([1])
@@ -1122,8 +1134,10 @@ class Uniswap:
 
         token_0 = pool.functions.token0().call()
         token_1 = pool.functions.token1().call()
-        token_0_instance = _load_contract(self.w3, abi_name="erc20", address=token_0)
-        token_1_instance = _load_contract(self.w3, abi_name="erc20", address=token_1)
+        token_0_instance = _load_contract(
+            self.w3, abi_name="erc20", address=token_0)
+        token_1_instance = _load_contract(
+            self.w3, abi_name="erc20", address=token_1)
 
         balance_0 = self.get_token_balance(token_0)
         balance_1 = self.get_token_balance(token_1)
@@ -1153,7 +1167,7 @@ class Uniswap:
         )
 
         # TODO: add slippage param
-        tx_hash = nft_manager.functions.mint(
+        function = nft_manager.functions.mint(
             (
                 token_0,
                 token_1,
@@ -1167,11 +1181,11 @@ class Uniswap:
                 self.address,
                 deadline,
             )
-        ).transact({"from": _addr_to_str(self.address)})
-        receipt = self.w3.eth.wait_for_transaction_receipt(tx_hash)
-        return receipt
+        )
+        return self._build_and_send_tx(function)
 
     # TODO: should this be multiple functions?
+
     @supports([3])
     def close_position(
         self,
@@ -1183,7 +1197,8 @@ class Uniswap:
         """
         remove all liquidity from the position associated w/ tokenId, collect fees, and burn token.
         """
-        position = self.nonFungiblePositionManager.functions.positions(tokenId).call()
+        position = self.nonFungiblePositionManager.functions.positions(
+            tokenId).call()
 
         if deadline is None:
             deadline = self._deadline()
@@ -1355,11 +1370,13 @@ class Uniswap:
                 _batch.append(
                     (
                         pool.address,
-                        HexBytes(pool.functions.ticks(tick)._encode_transaction_data()),
+                        HexBytes(pool.functions.ticks(
+                            tick)._encode_transaction_data()),
                     )
                 )
                 _ticks.append(tick)
-            ticks.append(Batch(_ticks, self.multicall(_batch, pool_tick_output_types)))
+            ticks.append(Batch(_ticks, self.multicall(
+                _batch, pool_tick_output_types)))
 
         for tickBatch in ticks:
             tick_arr = tickBatch.ticks
@@ -1471,7 +1488,8 @@ class Uniswap:
             "from": _addr_to_str(self.address),
             "value": value,
             "nonce": max(
-                self.last_nonce, self.w3.eth.get_transaction_count(self.address)
+                self.last_nonce, self.w3.eth.get_transaction_count(
+                    self.address)
             ),
         }
         if gas:
@@ -1826,7 +1844,8 @@ class Uniswap:
                 self.w3.toChecksumAddress(token_in),
                 self.w3.toChecksumAddress(token_out),
             ]
-            pair_token = self.factory_contract.functions.getPair(*params).call()
+            pair_token = self.factory_contract.functions.getPair(
+                *params).call()
             token_in_erc20 = _load_contract_erc20(
                 self.w3, self.w3.toChecksumAddress(token_in)
             )
@@ -1856,7 +1875,8 @@ class Uniswap:
                 self.w3.toChecksumAddress(token_out),
                 fee,
             ]
-            pool_address = self.factory_contract.functions.getPool(*params).call()
+            pool_address = self.factory_contract.functions.getPool(
+                *params).call()
             pool_contract = _load_contract(
                 self.w3, abi_name="uniswap-v3/pool", address=pool_address
             )
@@ -1914,7 +1934,8 @@ class Uniswap:
             # As `get_price_input()` uses UniswapV3Quoter for getting prices, that contract raises such exception in this situation.
             return 1
         price_amount = (
-            cost_amount / (amount_in / (10 ** self.get_token(token_in).decimals))
+            cost_amount /
+            (amount_in / (10 ** self.get_token(token_in).decimals))
         ) / 10 ** self.get_token(token_out).decimals
 
         return float((price_small - price_amount) / price_small)
@@ -1961,7 +1982,8 @@ class Uniswap:
             raise InvalidToken(token_addr)
         abi_name = "uniswap-v1/exchange"
         contract = _load_contract(self.w3, abi_name=abi_name, address=ex_addr)
-        logger.info(f"Loaded exchange contract {contract} at {contract.address}")
+        logger.info(
+            f"Loaded exchange contract {contract} at {contract.address}")
         return contract
 
     @supports([1])
