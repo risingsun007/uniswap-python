@@ -1159,9 +1159,9 @@ class Uniswap:
             )
 
         nft_manager = self.nonFungiblePositionManager
-        if self._is_approved_nft(token_0):
+        if self._is_approved_nft(token_0) == False:
             self.approve_nft(token_0)
-        if self._is_approved_nft(token_1):
+        if self._is_approved_nft(token_1) == False:
             self.approve_nft(token_1)
 
         # TODO: add slippage param
