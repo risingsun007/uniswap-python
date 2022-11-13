@@ -1206,7 +1206,7 @@ class Uniswap:
 
         tx_remove_liquidity = self._build_and_send_tx(
             self.nonFungiblePositionManager.functions.decreaseLiquidity(
-                tokenId, position[7], amount0Min, amount1Min, deadline
+                (tokenId, position[7], amount0Min, amount1Min, deadline)
             )
         )
         tx_collect_fees =  self._build_and_send_tx(self.nonFungiblePositionManager.functions.collect(
