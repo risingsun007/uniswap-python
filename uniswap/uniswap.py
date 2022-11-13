@@ -1159,12 +1159,10 @@ class Uniswap:
             )
 
         nft_manager = self.nonFungiblePositionManager
-        token_0_instance.functions.approve(nft_manager.address, amount_0).transact(
-            {"from": _addr_to_str(self.address)}
-        )
-        token_1_instance.functions.approve(nft_manager.address, amount_1).transact(
-            {"from": _addr_to_str(self.address)}
-        )
+        if self._is_approved_nft(token_0):
+            self.approve_nft(token_0)
+        if self._is_approved_nft(token_1):
+            self.approve_nft(token_1)
 
         # TODO: add slippage param
         function = nft_manager.functions.mint(
@@ -1429,6 +1427,19 @@ class Uniswap:
         # Add extra sleep to let tx propogate correctly
         time.sleep(1)
 
+    def approve_nft(self, token: AddressLike, max_approval: Optional[int] = None) -> None:
+        """Give an exchange/router max approval of a token."""
+        max_approval = self.max_approval_int if not max_approval else max_approval
+        function = _load_contract_erc20(self.w3, token).functions.approve(
+            self.positionManager_addr, max_approval
+        )
+        logger.warning(f"Approving {_addr_to_str(token)}...")
+        tx = self._build_and_send_tx(function)
+        self.w3.eth.wait_for_transaction_receipt(tx, timeout=6000)
+
+        # Add extra sleep to let tx propogate correctly
+        time.sleep(1)
+
     def _is_approved(self, token: AddressLike) -> bool:
         """Check to see if the exchange and token is approved."""
         _validate_address(token)
@@ -1439,6 +1450,19 @@ class Uniswap:
         amount = (
             _load_contract_erc20(self.w3, token)
             .functions.allowance(self.address, contract_addr)
+            .call()
+        )
+        if amount >= self.max_approval_check_int:
+            return True
+        else:
+            return False
+
+    def _is_approved_nft(self, token: AddressLike) -> bool:
+        """Check to see if the exchange and token is approved."""
+        _validate_address(token)
+        amount = (
+            _load_contract_erc20(self.w3, token)
+            .functions.allowance(self.address, self.positionManager_addr)
             .call()
         )
         if amount >= self.max_approval_check_int:
