@@ -1423,7 +1423,6 @@ class Uniswap:
         logger.warning(f"Approving {_addr_to_str(token)}...")
         tx = self._build_and_send_tx(function)
         result = self.w3.eth.wait_for_transaction_receipt(tx, timeout=6000)
-        print("approve result: ", result)
         # Add extra sleep to let tx propogate correctly
         time.sleep(1)
 
